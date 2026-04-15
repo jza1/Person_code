@@ -1,18 +1,11 @@
 <template>
   <div class="mall">
-    <div v-if="!currentUser" class="auth-banner">
-      <el-alert
-        title="欢迎来到 Rayshopping 商城"
-        type="info"
-        description="请先登录或注册以使用完整功能"
-        show-icon
-        :closable="false"
-      >
-        <template #default>
-          <el-button type="primary" @click="$router.push('/login')">去登录</el-button>
-          <el-button @click="$router.push('/register')">去注册</el-button>
-        </template>
-      </el-alert>
+    <div v-if="!currentUser" class="top-bar">
+      <div class="welcome-text">欢迎来到 Rayshopping 商城</div>
+      <div class="auth-buttons">
+        <el-button type="primary" @click="$router.push('/login')">登录</el-button>
+        <el-button @click="$router.push('/register')">注册</el-button>
+      </div>
     </div>
     <h2>商城首页</h2>
     <el-row :gutter="20">
@@ -112,7 +105,24 @@ async function handleBuyNow(product) {
   margin: 20px 0;
 }
 
-.auth-banner {
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
   margin-bottom: 20px;
+}
+
+.welcome-text {
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 10px;
 }
 </style>
