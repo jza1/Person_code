@@ -13,6 +13,9 @@ class Product(Base):
     price = Column(Float, nullable=False)
     image = Column(String)
     stock = Column(Integer, default=0)
+    category = Column(String, default="其他")  # 商品分类
+    is_hot = Column(Integer, default=0)  # 是否热门 0-否 1-是
+    sales = Column(Integer, default=0)  # 销量
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -59,3 +62,23 @@ class OrderItem(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     order = relationship("Order", back_populates="items")
+
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False)
+    product_id = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    from_user_id = Column(Integer, nullable=False)
+    to_user_id = Column(Integer, nullable=False)
+    content = Column(String, nullable=False)
+    is_read = Column(Integer, default=0)  # 0-未读 1-已读
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

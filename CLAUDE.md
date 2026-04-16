@@ -8,35 +8,40 @@
 
 - 用户注册/登录（JWT 认证）
 - 角色权限管理（普通用户/管理员）
-- 商品浏览与管理
+- 商品浏览与管理（支持分类、搜索、热门商品）
 - 购物车功能
-- 订单创建与查询
-- 管理员后台（用户管理、商品管理、订单管理）
+- 收货地址管理
+- 订单创建与查询（包含地址快照）
+- 商品收藏功能
+- 消息/客服功能
+- 图片上传功能
+- 管理员后台（用户管理、商品管理、订单管理、消息管理）
 
 ## 架构设计
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   前端 (Vue 3)                    │
-│              http://localhost:5173                │
-│                                                   │
-│  页面：首页 / 登录/注册 / 购物车 / 订单 / 管理    │
-└──────────┬──────────────────────┬────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      前端 (Vue 3)                             │
+│                 http://localhost:5173                         │
+│                                                               │
+│  页面：首页 / 登录/注册 / 购物车 / 地址 / 收藏 / 订单 / 消息 / 管理 │
+└──────────┬──────────────────────┬────────────────────────────┘
            │                      │
            ▼                      ▼
-┌─────────────────────┐  ┌─────────────────────────┐
-│   用户服务 (user)    │  │   购物服务 (shopping)     │
-│  :8081               │  │  :8082                   │
-│                      │  │                          │
-│  - 用户注册/登录     │  │  - 商品管理               │
-│  - 用户 CRUD (管理)  │  │  - 购物车                 │
-│  - JWT 认证          │  │  - 订单管理               │
-│  SQLite: user.db     │  │  - 结算                   │
-└──────────────────────┘  │                          │
-           ▲              │  SQLite: shopping.db      │
-           │              └─────────┬─────────────────┘
-           │                        │
-           └── HTTP 调用 ───────────┘
+┌─────────────────────┐  ┌─────────────────────────────────┐
+│   用户服务 (user)    │  │       购物服务 (shopping)         │
+│  :8081               │  │      :8082                       │
+│                      │  │                                  │
+│  - 用户注册/登录     │  │  - 商品管理（分类/搜索/热门）      │
+│  - 用户 CRUD (管理)  │  │  - 购物车                         │
+│  - JWT 认证          │  │  - 订单管理（含地址快照）          │
+│  SQLite: user.db     │  │  - 收藏夹                         │
+└──────────────────────┘  │  - 消息系统                       │
+           ▲              │  - 图片上传                         │
+           │              │  SQLite: shopping.db               │
+           │              └──────────┬───────────────────────┘
+           │                         │
+           └───── HTTP 调用 ─────────┘
            (购物服务调用用户服务校验用户)
 ```
 
@@ -65,6 +70,7 @@ shopping/
 │   ├── index.html
 │   └── src/
 │       ├── main.js
+│       ├── App.vue
 │       ├── router/
 │       │   └── index.js
 │       ├── api/               # 接口封装
@@ -75,11 +81,15 @@ shopping/
 │       │   ├── Login.vue      # 登录
 │       │   ├── Register.vue   # 注册
 │       │   ├── Cart.vue       # 购物车
+│       │   ├── Addresses.vue  # 收货地址管理
 │       │   ├── Orders.vue     # 订单管理
+│       │   ├── Favorites.vue  # 我的收藏
+│       │   ├── Messages.vue   # 消息/客服（管理员）
 │       │   ├── Users.vue      # 用户管理（管理员）
 │       │   └── Products.vue   # 商品管理（管理员）
 │       └── components/
-│           └── ProductCard.vue
+│           ├── ProductCard.vue
+│           └── CustomerService.vue
 ├── user-service/              # 用户微服务
 │   ├── requirements.txt
 │   ├── main.py
@@ -95,6 +105,7 @@ shopping/
 └── shopping-service/          # 购物微服务
     ├── requirements.txt
     ├── main.py
+    ├── uploads/               # 图片上传目录
     ├── app/
     │   ├── __init__.py
     │   ├── database.py        # 数据库连接配置
@@ -132,6 +143,9 @@ Product (products表 - 商品)
 ├── price       Float
 ├── image       String   (图片 URL)
 ├── stock       Integer
+├── category    String   (商品分类，默认"其他")
+├── is_hot      Integer  (是否热门 0-否 1-是)
+├── sales       Integer  (销量)
 ├── created_at  DateTime
 └── updated_at  DateTime
 
@@ -144,12 +158,18 @@ CartItem (cart_items表 - 购物车项)
 └── updated_at  DateTime
 
 Order (orders表 - 订单)
-├── id          Integer
-├── user_id     Integer
-├── total_price Float
-├── status      String  (pending/paid/cancelled)
-├── created_at  DateTime
-└── updated_at  DateTime
+├── id              Integer
+├── user_id         Integer
+├── total_price     Float
+├── status          String  (pending/paid/cancelled)
+├── address_name    String  (收货人姓名-快照)
+├── address_phone   String  (收货人电话-快照)
+├── address_province String (省份-快照)
+├── address_city    String  (城市-快照)
+├── address_district String (区县-快照)
+├── address_detail  String  (详细地址-快照)
+├── created_at      DateTime
+└── updated_at      DateTime
 
 OrderItem (order_items表 - 订单明细)
 ├── id          Integer
@@ -158,6 +178,20 @@ OrderItem (order_items表 - 订单明细)
 ├── quantity    Integer
 ├── price       Float
 └── created_at  DateTime
+
+Favorite (favorites表 - 收藏)
+├── id          Integer
+├── user_id     Integer
+├── product_id  Integer
+└── created_at  DateTime
+
+Message (messages表 - 消息)
+├── id              Integer
+├── from_user_id    Integer  (发送者ID)
+├── to_user_id      Integer  (接收者ID)
+├── content         String   (消息内容)
+├── is_read         Integer  (0-未读 1-已读)
+└── created_at      DateTime
 ```
 
 ## API 设计
@@ -180,7 +214,10 @@ OrderItem (order_items表 - 订单明细)
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | /api/products | 商品列表 |
+| POST | /api/upload/image | 上传商品图片 |
+| GET | /api/products | 商品列表（支持 category、search 筛选） |
+| GET | /api/products/categories | 获取所有分类 |
+| GET | /api/products/hot | 获取热门商品 |
 | GET | /api/products/{product_id} | 商品详情 |
 | POST | /api/products | 添加商品 |
 | PUT | /api/products/{product_id} | 更新商品 |
@@ -189,10 +226,20 @@ OrderItem (order_items表 - 订单明细)
 | POST | /api/cart | 加入购物车 |
 | PUT | /api/cart/{cart_id} | 更新购物车数量 |
 | DELETE | /api/cart/{cart_id} | 移除购物车项 |
-| POST | /api/orders | 创建订单 |
+| POST | /api/orders | 创建订单（含收货地址） |
 | GET | /api/orders | 获取所有订单 |
 | GET | /api/orders/{user_id} | 用户订单列表 |
 | GET | /api/orders/detail/{order_id} | 订单详情 |
+| GET | /api/favorites/{user_id} | 获取收藏列表 |
+| POST | /api/favorites | 添加收藏 |
+| DELETE | /api/favorites/item/{favorite_id} | 删除收藏项（by ID） |
+| DELETE | /api/favorites/{user_id}/{product_id} | 删除收藏项（by 用户+商品） |
+| GET | /api/messages/{user_id} | 获取消息列表 |
+| GET | /api/messages/unread/{user_id} | 获取未读消息数 |
+| GET | /api/messages/conversations/{user_id} | 获取会话用户列表 |
+| POST | /api/messages | 发送消息 |
+| PUT | /api/messages/{message_id}/read | 标记单条消息已读 |
+| PUT | /api/messages/{user_id}/{other_user_id}/read | 标记会话已读 |
 
 ### 统一返回格式
 
@@ -218,11 +265,15 @@ Authorization: Bearer <access_token>
 | 浏览商品 | ✓ | ✓ |
 | 注册/登录 | ✓ | ✓ |
 | 购物车操作 | ✓ | ✓ |
+| 收货地址管理 | ✓ | ✓ |
 | 创建订单 | ✓ | ✓ |
 | 查看自己订单 | ✓ | ✓ |
+| 商品收藏 | ✓ | ✓ |
+| 发送/接收消息 | ✓ | ✓ |
 | 查看所有订单 | ✗ | ✓ |
 | 商品管理（上架/编辑/删除） | ✗ | ✓ |
 | 用户管理（创建/编辑/删除） | ✗ | ✓ |
+| 消息管理（客服） | ✗ | ✓ |
 
 ## 微服务交互
 
@@ -272,7 +323,7 @@ npm run dev
   - 管理员: `admin` / `admin123`
   - 普通用户: `test1` / `123456`, `test2` / `123456`
 
-- **购物服务**：创建 5 个示例商品（iPhone 15, MacBook Pro, AirPods Pro, iPad Air, Apple Watch）
+- **购物服务**：创建示例商品（支持分类、热门标记）
 
 ### 前端代理配置
 
@@ -280,6 +331,7 @@ Vite 开发服务器配置反向代理：
 
 - `/api/user/*` → `http://localhost:8081/*`
 - `/api/shop/*` → `http://localhost:8082/*`
+- `/uploads/*` → `http://localhost:8082/uploads/*`
 
 避免跨域问题。
 

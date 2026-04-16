@@ -9,6 +9,9 @@ class ProductBase(BaseModel):
     price: float
     image: Optional[str] = None
     stock: int = 0
+    category: Optional[str] = "其他"
+    is_hot: Optional[int] = 0
+    sales: Optional[int] = 0
 
 
 class ProductCreate(ProductBase):
@@ -21,10 +24,16 @@ class ProductUpdate(BaseModel):
     price: Optional[float] = None
     image: Optional[str] = None
     stock: Optional[int] = None
+    category: Optional[str] = None
+    is_hot: Optional[int] = None
+    sales: Optional[int] = None
 
 
 class ProductResponse(ProductBase):
     id: int
+    category: str = "其他"
+    is_hot: int = 0
+    sales: int = 0
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -107,6 +116,46 @@ class OrderResponse(OrderBase):
     items: List[OrderItemResponse] = []
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class FavoriteBase(BaseModel):
+    user_id: int
+    product_id: int
+
+
+class FavoriteCreate(FavoriteBase):
+    pass
+
+
+class FavoriteResponse(FavoriteBase):
+    id: int
+    product: Optional[ProductResponse] = None
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class MessageBase(BaseModel):
+    from_user_id: int
+    to_user_id: int
+    content: str
+
+
+class MessageCreate(MessageBase):
+    pass
+
+
+class MessageResponse(MessageBase):
+    id: int
+    is_read: int = 0
+    created_at: datetime
+    from_user_nickname: Optional[str] = None
 
     class Config:
         orm_mode = True

@@ -4,7 +4,6 @@ from fastapi.staticfiles import StaticFiles
 import os
 from app import api, models, database
 
-# 创建上传目录
 os.makedirs("uploads", exist_ok=True)
 
 models.Base.metadata.create_all(bind=database.engine)
@@ -19,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 挂载静态文件服务，用于访问上传的图片
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.include_router(api.router)
@@ -31,11 +29,18 @@ def startup_event():
     try:
         if db.query(models.Product).count() == 0:
             sample_products = [
-                models.Product(name="iPhone 15", description="苹果最新手机", price=7999.0, image="https://picsum.photos/200/200?1", stock=100),
-                models.Product(name="MacBook Pro", description="苹果笔记本电脑", price=14999.0, image="https://picsum.photos/200/200?2", stock=50),
-                models.Product(name="AirPods Pro", description="无线降噪耳机", price=1899.0, image="https://picsum.photos/200/200?3", stock=200),
-                models.Product(name="iPad Air", description="苹果平板电脑", price=4799.0, image="https://picsum.photos/200/200?4", stock=80),
-                models.Product(name="Apple Watch", description="苹果智能手表", price=2999.0, image="https://picsum.photos/200/200?5", stock=120),
+                models.Product(name="iPhone 15 Pro", description="苹果最新旗舰手机，A17芯片，钛金属边框", price=8999.0, image="https://picsum.photos/400/400?1", stock=100, category="手机", is_hot=1, sales=256),
+                models.Product(name="MacBook Pro 14", description="M3 Pro芯片，专业性能笔记本", price=16999.0, image="https://picsum.photos/400/400?2", stock=50, category="电脑", is_hot=1, sales=128),
+                models.Product(name="AirPods Pro 2", description="无线降噪耳机，自适应通透模式", price=1899.0, image="https://picsum.photos/400/400?3", stock=200, category="耳机", is_hot=1, sales=512),
+                models.Product(name="iPad Air 5", description="M1芯片，轻薄平板电脑", price=4799.0, image="https://picsum.photos/400/400?4", stock=80, category="平板", is_hot=0, sales=189),
+                models.Product(name="Apple Watch S9", description="健康监测，运动追踪", price=2999.0, image="https://picsum.photos/400/400?5", stock=120, category="手表", is_hot=1, sales=345),
+                models.Product(name="小米14 Ultra", description="徕卡影像，骁龙8 Gen3", price=6499.0, image="https://picsum.photos/400/400?6", stock=150, category="手机", is_hot=0, sales=234),
+                models.Product(name="华为Mate 60 Pro", description="卫星通话，麒麟芯片", price=6999.0, image="https://picsum.photos/400/400?7", stock=90, category="手机", is_hot=1, sales=456),
+                models.Product(name="Sony WH-1000XM5", description="行业标杆降噪耳机", price=2499.0, image="https://picsum.photos/400/400?8", stock=110, category="耳机", is_hot=0, sales=167),
+                models.Product(name="Dell XPS 15", description="4K OLED屏，轻薄高性能", price=12999.0, image="https://picsum.photos/400/400?9", stock=60, category="电脑", is_hot=0, sales=78),
+                models.Product(name="Samsung Galaxy S24", description="Dynamic AMOLED 2X", price=7999.0, image="https://picsum.photos/400/400?10", stock=130, category="手机", is_hot=0, sales=234),
+                models.Product(name="Switch OLED", description="任天堂游戏机，7英寸屏", price=2499.0, image="https://picsum.photos/400/400?11", stock=180, category="游戏", is_hot=1, sales=678),
+                models.Product(name="PS5 光驱版", description="索尼次世代游戏机", price=3899.0, image="https://picsum.photos/400/400?12", stock=75, category="游戏", is_hot=1, sales=445),
             ]
             for product in sample_products:
                 db.add(product)

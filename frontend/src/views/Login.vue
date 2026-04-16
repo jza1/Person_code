@@ -1,22 +1,44 @@
 <template>
   <div class="login-container">
-    <el-card class="login-card">
+    <div class="login-bg"></div>
+    <el-card class="login-card" shadow="hover">
       <template #header>
-        <h2>用户登录</h2>
+        <div class="login-header">
+          <div class="logo-icon">
+            <el-icon :size="40"><ShoppingBag /></el-icon>
+          </div>
+          <h2>欢迎回来</h2>
+          <p class="subtitle">登录您的 Rayshopping 账户</p>
+        </div>
       </template>
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="80px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
+      <el-form :model="form" :rules="rules" ref="formRef" label-position="top">
+        <el-form-item prop="username">
+          <el-input
+            v-model="form.username"
+            placeholder="请输入用户名"
+            size="large"
+            :prefix-icon="User"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password @keyup.enter="handleLogin" />
+        <el-form-item prop="password">
+          <el-input
+            v-model="form.password"
+            type="password"
+            placeholder="请输入密码"
+            size="large"
+            :prefix-icon="Lock"
+            show-password
+            @keyup.enter="handleLogin"
+          />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :loading="loading" style="width: 100%" @click="handleLogin">登录</el-button>
+          <el-button type="primary" :loading="loading" size="large" class="login-btn" @click="handleLogin">
+            登 录
+          </el-button>
         </el-form-item>
       </el-form>
       <div class="register-link">
-        还没有账号？<router-link to="/register">去注册</router-link>
+        还没有账号？<router-link to="/register">立即注册</router-link>
       </div>
     </el-card>
   </div>
@@ -26,6 +48,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { User, Lock, ShoppingBag } from '@element-plus/icons-vue'
 import { login } from '@/api/user'
 
 const router = useRouter()
@@ -47,12 +70,9 @@ async function handleLogin() {
   loading.value = true
   try {
     const res = await login(form)
-    console.log('Login response:', res)
     localStorage.setItem('token', res.data.access_token)
     localStorage.setItem('currentUser', JSON.stringify(res.data.user))
-    console.log('User saved to localStorage:', res.data.user)
     ElMessage.success('登录成功')
-    // 强制刷新页面以确保 App.vue 重新加载用户数据
     window.location.href = '/'
   } catch (e) {
     ElMessage.error(e.message || e.detail || '登录失败')
@@ -64,29 +84,88 @@ async function handleLogin() {
 
 <style scoped>
 .login-container {
+  position: relative;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 80vh;
+  overflow: hidden;
+}
+
+.login-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 0;
 }
 
 .login-card {
-  width: 400px;
+  position: relative;
+  z-index: 1;
+  width: 420px;
+  border-radius: 16px;
 }
 
-.login-card h2 {
-  margin: 0;
+.login-header {
   text-align: center;
+}
+
+.login-header .logo-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: white;
+}
+
+.login-header h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.login-header .subtitle {
+  margin: 0;
+  color: #999;
+  font-size: 14px;
+}
+
+.login-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 12px;
+}
+
+.login-btn:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 .register-link {
   text-align: center;
-  margin-top: 15px;
+  margin-top: 20px;
   color: #666;
+  font-size: 14px;
 }
 
 .register-link a {
-  color: #409eff;
+  color: #667eea;
   text-decoration: none;
+  font-weight: 500;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
 }
 </style>

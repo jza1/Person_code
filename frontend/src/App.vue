@@ -11,9 +11,11 @@
         class="nav-menu"
       >
         <el-menu-item index="/">商城</el-menu-item>
+        <el-menu-item index="/favorites" v-if="!isAdmin">我的收藏</el-menu-item>
         <el-menu-item index="/cart" v-if="!isAdmin">购物车</el-menu-item>
         <el-menu-item index="/orders">{{ isAdmin ? '客户订单' : '我的订单' }}</el-menu-item>
         <el-menu-item index="/addresses" v-if="!isAdmin">收货地址</el-menu-item>
+        <el-menu-item index="/messages" v-if="isAdmin">消息管理</el-menu-item>
         <el-menu-item index="/users" v-if="isAdmin">用户管理</el-menu-item>
         <el-menu-item index="/products" v-if="isAdmin">商品管理</el-menu-item>
       </el-menu>
@@ -25,6 +27,7 @@
     <el-main class="app-main">
       <router-view />
     </el-main>
+    <CustomerService />
   </el-container>
   <div v-else>
     <router-view />
@@ -35,6 +38,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import CustomerService from '@/components/CustomerService.vue'
 
 const route = useRoute()
 const router = useRouter()

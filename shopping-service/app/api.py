@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import os
@@ -9,28 +9,23 @@ from .user_client import verify_user_exists
 
 router = APIRouter()
 
-# 创建上传目录
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/api/upload/image")
 async def upload_image(file: UploadFile = File(...)):
-    # 检查文件类型
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="只允许上传图片文件")
 
-    # 生成唯一文件名
     file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
     new_filename = f"{uuid.uuid4().hex}.{file_ext}"
     file_path = os.path.join(UPLOAD_DIR, new_filename)
 
-    # 保存文件
     content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
 
-    # 返回图片 URL
     image_url = f"/uploads/{new_filename}"
     return success_response({"url": image_url, "filename": new_filename})
 
@@ -40,8 +35,26 @@ def success_response(data=None):
 
 
 @router.get("/api/products")
-def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    products = crud.get_products(db, skip=skip, limit=limit)
+def get_products(
+    skip: int = 0,
+    limit: int = 100,
+    category: str = None,
+    search: str = None,
+    db: Session = Depends(get_db)
+):
+    products = crud.get_products(db, skip=skip, limit=limit, category=category, search=search)
+    return success_response([schemas.ProductResponse.from_orm(p) for p in products])
+
+
+@router.get("/api/products/categories")
+def get_categories(db: Session = Depends(get_db)):
+    categories = crud.get_categories(db)
+    return success_response(categories)
+
+
+@router.get("/api/products/hot")
+def get_hot_products(limit: int = 10, db: Session = Depends(get_db)):
+    products = crud.get_hot_products(db, limit=limit)
     return success_response([schemas.ProductResponse.from_orm(p) for p in products])
 
 
@@ -124,7 +137,6 @@ async def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
         total_price += product.price * item.quantity
-    # 收集地址数据
     address_data = {
         "name": order.address_name,
         "phone": order.address_phone,
@@ -175,3 +187,83 @@ def get_order_detail(order_id: int, db: Session = Depends(get_db)):
     order_dict = schemas.OrderResponse.from_orm(order).dict()
     order_dict["items"] = [schemas.OrderItemResponse.from_orm(i) for i in order.items]
     return success_response(order_dict)
+
+
+@router.get("/api/favorites/{user_id}")
+def get_favorites(user_id: int, db: Session = Depends(get_db)):
+    favorites = crud.get_favorites_by_user(db, user_id=user_id)
+    result = []
+    for fav in favorites:
+        fav_dict = schemas.FavoriteResponse.from_orm(fav).dict()
+        product = crud.get_product(db, fav.product_id)
+        if product:
+            fav_dict["product"] = schemas.ProductResponse.from_orm(product)
+        result.append(fav_dict)
+    return success_response(result)
+
+
+@router.post("/api/favorites")
+def add_favorite(favorite: schemas.FavoriteCreate, db: Session = Depends(get_db)):
+    product = crud.get_product(db, favorite.product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    added = crud.add_favorite(db=db, favorite=favorite)
+    return success_response(schemas.FavoriteResponse.from_orm(added))
+
+
+@router.delete("/api/favorites/item/{favorite_id}")
+def remove_favorite_item(favorite_id: int, db: Session = Depends(get_db)):
+    deleted = crud.remove_favorite_by_id(db, favorite_id=favorite_id)
+    if deleted is None:
+        raise HTTPException(status_code=404, detail="Favorite not found")
+    return success_response({"id": deleted.id})
+
+
+@router.get("/api/messages/{user_id}")
+def get_messages(user_id: int, other_user_id: int = None, db: Session = Depends(get_db)):
+    messages = crud.get_messages_by_user(db, user_id=user_id, other_user_id=other_user_id)
+    result = []
+    for msg in messages:
+        msg_dict = schemas.MessageResponse.from_orm(msg).dict()
+        result.append(msg_dict)
+    return success_response(result)
+
+
+@router.get("/api/messages/unread/{user_id}")
+def get_unread_count(user_id: int, db: Session = Depends(get_db)):
+    count = crud.get_unread_count(db, user_id=user_id)
+    return success_response({"count": count})
+
+
+@router.post("/api/messages")
+def send_message(message: schemas.MessageCreate, db: Session = Depends(get_db)):
+    created = crud.create_message(db, message=message)
+    return success_response(schemas.MessageResponse.from_orm(created))
+
+
+@router.put("/api/messages/{message_id}/read")
+def mark_message_read(message_id: int, db: Session = Depends(get_db)):
+    updated = crud.mark_as_read(db, message_id=message_id)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return success_response(schemas.MessageResponse.from_orm(updated))
+
+
+@router.put("/api/messages/{user_id}/{other_user_id}/read")
+def mark_conversation_read(user_id: int, other_user_id: int, db: Session = Depends(get_db)):
+    crud.mark_conversation_as_read(db, user_id=user_id, other_user_id=other_user_id)
+    return success_response(None)
+
+
+@router.get("/api/messages/conversations/{user_id}")
+def get_conversations(user_id: int, db: Session = Depends(get_db)):
+    user_ids = crud.get_conversation_users(db, user_id=user_id)
+    return success_response(user_ids)
+
+
+@router.delete("/api/favorites/{user_id}/{product_id}")
+def remove_favorite(user_id: int, product_id: int, db: Session = Depends(get_db)):
+    deleted = crud.remove_favorite(db, user_id=user_id, product_id=product_id)
+    if deleted is None:
+        raise HTTPException(status_code=404, detail="Favorite not found")
+    return success_response({"id": deleted.id})

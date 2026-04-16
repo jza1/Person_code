@@ -13,11 +13,19 @@
         </template>
       </el-table-column>
       <el-table-column prop="name" label="商品名称" />
-      <el-table-column prop="description" label="描述" show-overflow-tooltip />
+      <el-table-column prop="category" label="分类" width="100" />
       <el-table-column prop="price" label="价格" width="120">
         <template #default="{ row }">¥{{ row.price.toFixed(2) }}</template>
       </el-table-column>
-      <el-table-column prop="stock" label="库存" width="100" />
+      <el-table-column prop="stock" label="库存" width="80" />
+      <el-table-column prop="sales" label="销量" width="80" />
+      <el-table-column label="热门" width="80">
+        <template #default="{ row }">
+          <el-tag :type="row.is_hot === 1 ? 'danger' : 'info'" size="small">
+            {{ row.is_hot === 1 ? '是' : '否' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="200">
         <template #default="{ row }">
           <el-button link type="primary" @click="showEditDialog(row)">编辑</el-button>
@@ -33,6 +41,9 @@
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input v-model="productForm.description" type="textarea" placeholder="请输入商品描述" />
+        </el-form-item>
+        <el-form-item label="分类" prop="category">
+          <el-input v-model="productForm.category" placeholder="请输入分类，如：手机、电脑、耳机等" />
         </el-form-item>
         <el-form-item label="价格" prop="price">
           <el-input-number v-model="productForm.price" :min="0" :precision="2" placeholder="价格" style="width: 100%" />
@@ -59,6 +70,9 @@
         </el-form-item>
         <el-form-item label="库存" prop="stock">
           <el-input-number v-model="productForm.stock" :min="0" placeholder="库存" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="设为热门">
+          <el-switch v-model="productForm.is_hot" :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -87,15 +101,19 @@ const imageTab = ref('url')
 const productForm = reactive({
   name: '',
   description: '',
+  category: '其他',
   price: 0,
   image: '',
-  stock: 0
+  stock: 0,
+  is_hot: 0,
+  sales: 0
 })
 
 const productRules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
   price: [{ required: true, message: '请输入价格', trigger: 'blur' }],
-  stock: [{ required: true, message: '请输入库存', trigger: 'blur' }]
+  stock: [{ required: true, message: '请输入库存', trigger: 'blur' }],
+  category: [{ required: true, message: '请输入分类', trigger: 'blur' }]
 }
 
 onMounted(() => {
@@ -114,9 +132,12 @@ function showAddDialog() {
   Object.assign(productForm, {
     name: '',
     description: '',
+    category: '其他',
     price: 0,
     image: '',
-    stock: 0
+    stock: 0,
+    is_hot: 0,
+    sales: 0
   })
   dialogVisible.value = true
 }
@@ -128,9 +149,12 @@ function showEditDialog(product) {
   Object.assign(productForm, {
     name: product.name,
     description: product.description || '',
+    category: product.category || '其他',
     price: product.price,
     image: product.image || '',
-    stock: product.stock
+    stock: product.stock,
+    is_hot: product.is_hot || 0,
+    sales: product.sales || 0
   })
   dialogVisible.value = true
 }
